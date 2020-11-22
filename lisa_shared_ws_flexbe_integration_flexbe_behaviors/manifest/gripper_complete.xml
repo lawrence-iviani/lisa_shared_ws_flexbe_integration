@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Gripper Complete">
+
+	<executable package_path="lisa_shared_ws_flexbe_integration_flexbe_behaviors.gripper_complete_sm" class="GripperCompleteSM" />
+	<tagstring>Lisa Dialogue</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Tue Nov 11 2020</date>
+	<description>
+		A yes No dialogue, to infer from the operator if the gripper is complete
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+	<!-- Semantic Properties -->
+
+</behavior>

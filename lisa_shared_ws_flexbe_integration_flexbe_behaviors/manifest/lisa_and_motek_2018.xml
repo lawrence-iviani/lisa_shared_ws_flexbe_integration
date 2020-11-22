@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Lisa and Motek 2018">
+
+	<executable package_path="lisa_shared_ws_flexbe_integration_flexbe_behaviors.lisa_and_motek_2018_sm" class="LisaandMotek2018SM" />
+	<tagstring>Motek Lisa</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Nov 20 2020</date>
+	<description>
+		Added acoustic communication channel, based on Motek 2018 with localization of parts and online trajectory computation
+	</description>
+
+
+	<!-- Contained Behaviors -->
+	<contains name="Gripper Complete" />
+	<contains name="MotekInsertScrew" />
+
+	<!-- Available Parameters -->
+
+	<!-- Semantic Properties -->
+	<state_props name="Load Trajectory">
+		<property key="Hardware" 	value="GPU"/>
+	</state_props>
+	<state_props name="Execute New Trajectory">
+		<property key="Hardware" 	value="GPU"/>
+	</state_props>
+	<behavior_props name="MotekInsertScrew">
+		<state_props name="MotekInsertScrew">
+		</state_props>
+	</behavior_props>
+	<state_props name="Move To Home">
+		<property key="Hardware" 	value="GPU"/>
+	</state_props>
+
+</behavior>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="Grip Ended Confirm">
+
+	<executable package_path="lisa_shared_ws_flexbe_integration_flexbe_behaviors.grip_ended_confirm_sm" class="GripEndedConfirmSM" />
+	<tagstring>Motek Lisa Dialogue Integration</tagstring>
+	<author>Lawrence Iviani</author>
+	<date>Tue Nov 21 2020</date>
+	<description>
+		A sub-behaviour in motek 2018, to recognize what to do with gripper and screws.
+A state machine to be used in motek 2018 to interact with operators about gripper finalization
+	</description>
+
+
+	<!-- Contained Behaviors -->
+
+	<!-- Available Parameters -->
+
+	<!-- Semantic Properties -->
+
+</behavior>
