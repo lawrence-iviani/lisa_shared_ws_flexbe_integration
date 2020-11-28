@@ -68,14 +68,14 @@ A state machine to be used in motek 2018 to interact with operators about grippe
 
 
     def create(self):
-        session_id = 'AskGripperIsFinishedSession'
         wait_for_confirm = 25
         wait_for_utter = 15
-        intents = ['YesNo']
+        intents = ['YesNo', 'Complete', 'ConfirmGripperFinished']
         answer = 'part_type'
         detail_levels = 'low'
-        confirm_key = 'confirm'
+        confirm_key = 'answer'
         wait_before_exit = 2
+        session_id = None
         # x:143 y:908, x:539 y:365, x:546 y:667, x:755 y:635, x:860 y:350, x:668 y:414
         _state_machine = OperatableStateMachine(outcomes=['complete', 'incomplete', 'fail', 'unknwon', 'aborted', 'succeded'], input_keys=['screw_id', 'screw_found', 'last_insert_finished_successful'], output_keys=['list_available_screw_poses', 'confirmed'])
         _state_machine.userdata.gripper_ended_question = 'Is the gripper complete?'
@@ -166,21 +166,21 @@ A state machine to be used in motek 2018 to interact with operators about grippe
 
             # x:355 y:155
             OperatableStateMachine.add('Utter Error Update Screw State',
-                                        LisaUtterState(context_id=None, wait_time=15),
+                                        LisaUtterState(context_id=session_id, wait_time=15, suspend_time=0),
                                         transitions={'done': 'fail', 'preempt': 'fail', 'timeouted': 'fail', 'error': 'fail'},
                                         autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'utter_abort_screw_state', 'error_reason': 'error_reason'})
 
             # x:74 y:542
             OperatableStateMachine.add('UtterRecognized',
-                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter),
+                                        LisaUtterState(context_id=None, wait_time=wait_for_utter, suspend_time=0),
                                         transitions={'done': 'GetConfirm', 'preempt': 'GetConfirm', 'timeouted': 'GetConfirm', 'error': 'fail'},
                                         autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'text_to_utter', 'error_reason': 'error_reason'})
 
             # x:1104 y:747
             OperatableStateMachine.add('UtterRecognizedText',
-                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter),
+                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter, suspend_time=0),
                                         transitions={'done': 'ContinueRetry', 'preempt': 'wait_unknown', 'timeouted': 'wait_unknown', 'error': 'fail'},
                                         autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'text_to_utter', 'error_reason': 'error_reason'})

@@ -49,18 +49,21 @@ class GripperCompleteSM(Behavior):
 
         # Behavior comments:
 
+        # O 316 193 
+        # used for debug
+
 
 
     def create(self):
-        session_id = 'GripperComplete'
+        session_id = None
         wait_for_question = 25
         wait_for_utter = 15
-        intents = ['YesNo']
-        answer_key = 'confirm'
+        intents = ['YesNo', 'Complete']
+        answer_key = 'finshed'
         detail_levels = 'low'
         # x:73 y:608, x:539 y:365, x:575 y:287
         _state_machine = OperatableStateMachine(outcomes=['finished', 'failed', 'max_retry'], output_keys=['answer'])
-        _state_machine.userdata.question = 'Is the gripper complete? Please, Answer Yes or No'
+        _state_machine.userdata.question = 'Please, is the gripper complete?'
         _state_machine.userdata.retry = 2
         _state_machine.userdata.answer = ''
 
@@ -91,7 +94,7 @@ class GripperCompleteSM(Behavior):
 
         with _state_machine:
             # x:416 y:26
-            OperatableStateMachine.add('AskForCOmplete',
+            OperatableStateMachine.add('AskForComplete',
                                         LisaUtterAndWaitForIntentState(context_id=session_id, intents=intents, wait_time=wait_for_question),
                                         transitions={'intent_recognized': 'Recognized', 'intent_not_recognized': 'NotRecognized', 'preempt': 'failed', 'timeouted': 'failed', 'error': 'failed'},
                                         autonomy={'intent_recognized': Autonomy.Off, 'intent_not_recognized': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
@@ -114,35 +117,35 @@ class GripperCompleteSM(Behavior):
             # x:783 y:27
             OperatableStateMachine.add('NotRecognized',
                                         LisaRecognitionResultToStringState(context_id=session_id, detail_levels=detail_levels),
-                                        transitions={'done': 'UtterRecognizedText'},
+                                        transitions={'done': 'UtterNotRecognizedText'},
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'payload': 'payload', 'original_sentence': 'original_sentence', 'error_reason': 'error_reason', 'intent_recognized': 'intent_recognized', 'text_to_utter': 'text_to_utter'})
 
             # x:42 y:122
             OperatableStateMachine.add('Recognized',
                                         LisaRecognitionResultToStringState(context_id=session_id, detail_levels=detail_levels),
-                                        transitions={'done': 'UtterRecognized'},
+                                        transitions={'done': 'GetAnswerKey'},
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'payload': 'payload', 'original_sentence': 'original_sentence', 'error_reason': 'error_reason', 'intent_recognized': 'intent_recognized', 'text_to_utter': 'text_to_utter'})
 
-            # x:87 y:244
-            OperatableStateMachine.add('UtterRecognized',
-                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter),
-                                        transitions={'done': 'GetAnswerKey', 'preempt': 'failed', 'timeouted': 'failed', 'error': 'failed'},
+            # x:878 y:289
+            OperatableStateMachine.add('UtterNotRecognizedText',
+                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter, suspend_time=1),
+                                        transitions={'done': 'ContinueRetry', 'preempt': 'failed', 'timeouted': 'failed', 'error': 'failed'},
                                         autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'text_to_utter', 'error_reason': 'error_reason'})
 
-            # x:878 y:289
-            OperatableStateMachine.add('UtterRecognizedText',
-                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter),
-                                        transitions={'done': 'ContinueRetry', 'preempt': 'failed', 'timeouted': 'failed', 'error': 'failed'},
+            # x:278 y:216
+            OperatableStateMachine.add('UtterRecognized',
+                                        LisaUtterState(context_id=session_id, wait_time=wait_for_utter, suspend_time=1),
+                                        transitions={'done': 'GetAnswerKey', 'preempt': 'failed', 'timeouted': 'failed', 'error': 'failed'},
                                         autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'text_to_utter', 'error_reason': 'error_reason'})
 
             # x:635 y:94
             OperatableStateMachine.add('log_retry_value',
-                                        LogKeyState(text="retry level is {}", severity=Logger.REPORT_HINT),
-                                        transitions={'done': 'AskForCOmplete'},
+                                        LogKeyState(text="GC: retry level is {}", severity=Logger.REPORT_HINT),
+                                        transitions={'done': 'AskForComplete'},
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'data': 'retry'})
 
