@@ -39,52 +39,62 @@ class GripperStateListener(EventState):
         # See example_state.py for basic explanations.
         super(GripperStateListener, self).__init__(
             outcomes=['succeeded', 'aborted'],
-            input_keys=['gripper_id'],
+            input_keys=['selected_gripper_id'],
             output_keys=['gripper_status', 'list_gripper_screws_status', 'gripper_id', 'gripper_name', 'error_reason' ])
 
         self.topic_name = '/grippers_state'
         self.wait = time_out
-        self.error_reason = None
-	self.list_gripper_screws_status = None  # if set to None means it was never called
-					 # if no screws are avaliable in the gripper a empty list should be returned
 	self.input_id_is_screw = input_id_is_screw
 	self.number_part_screws = number_part_screws
-	# with this flas as True means gripper_id is a screw_id instead, this means I have to calculate the 
-	# actual gripper_id from the screw_id. 
 		
     def execute(self, userdata):
 	elapsed = rospy.get_rostime() - self.start_time
 	if self.error_reason is not None:
-		Logger.logerr("Exit for an error: " + str(self.error_reason))
+		Logger.logerr("GripperStateListener: Exit for an error: " + str(self.error_reason))
         	return 'aborted'
 	if self.list_gripper_screws_status is None and elapsed.to_sec() > self.wait:
-		Logger.logerr("Exit for time out")
+		Logger.logerr("GripperStateListener Exit for time out")
         	return 'aborted'
 	# ok, no error, no timeout, i have succeded then
         if self.list_gripper_screws_status is not None:
+	    Logger.loginfo("GripperStateListener Exit succeeded")
             return 'succeeded'
         
+    def _reset_keys(self):
+	self.error_reason = None
+	self.list_gripper_screws_status = None  # if set to None means it was never called
+	# This state is used several time, this grant a clean status on enter and exir
+	self.error_reason = None
+	self.list_gripper_screws_status = None  # if set to None means it was never called
+	self.gripper_status = None
+	self.gripper_name = ''
+	self.gripper_id = None
+
     def _topic_rcvd(self, data):
 	if self.list_gripper_screws_status is None:
-	    Logger.logdebug('Subscribed topic rcvd: {}'.format(data))
+	    Logger.loginfo('GripperStateListener: Subscribed topic rcvd: {}'.format(data))
 	    try:
 	    	self.list_gripper_screws_status = [SCREW_STATES[ord(d)] for d in data.grippers[self.gripper_id].screws_status]
 		self.gripper_status = GRIPPER_STATES[data.grippers[self.gripper_id].status]
-		Logger.loginfo('Gripper status is {} - Screws status are {}'.format(self.gripper_status, self.list_gripper_screws_status))
+		Logger.loginfo('GripperStateListener: Gripper status is {} - Screws status are {}'.format(self.gripper_status, self.list_gripper_screws_status))
 	    except Exception as e:
-		self.error_reason = "Error receiving the topic >>>" + str(e) + "<<<"
+		Logger.logwar('GripperStateListener: Error decoding topic grippers_state >>>{}<<<"'.format(e))
+		self.error_reason = "Error decoding topic grippers_state >>>" + str(e) + "<<<"
 	else:
+	    Logger.loginfo('GripperStateListenerripperStateListener: Subscribed topic rcvd: {} BUT DOING NOTHING'.format(data))
 	    pass #Logger.logwarn("Topic " + str() + " already called. Unregister ")
 	    #self.sub_gripper_state.unregister()
 
     def on_enter(self, userdata):
+	self._reset_keys()
+
 	if self.input_id_is_screw:	
-		self.gripper_id = userdata.gripper_id // self.number_part_screws
+		self.gripper_id = userdata.selected_gripper_id // self.number_part_screws
 	else:
-		self.gripper_id = userdata.gripper_id
-	Logger.loginfo('Identified gripper id {}'.format(self.gripper_id))
+		self.gripper_id = userdata.selected_gripper_id
+	Logger.loginfo('GripperStateListener: provided gripper id {}'.format(self.gripper_id))
 	try:
-   	    Logger.loginfo('Subscribing topic: {}'.format(self.topic_name))
+   	    Logger.logdebug('GripperStateListener: Subscribing topic: {}'.format(self.topic_name))
 	    self.sub_gripper_state = rospy.Subscriber(self.topic_name, GripperArray, self._topic_rcvd)		
 	except Exception as e:
 	    self.error_reason = "Error subscribing topic >>>" + str(e) + "<<<"
@@ -93,11 +103,17 @@ class GripperStateListener(EventState):
     def on_exit(self, userdata):
 	# saving the output
 	try:
-            userdata.error_reason = self.error_reason if self.error_reason is not None else ''
-	    userdata.list_gripper_screws_status = self.list_gripper_screws_status if self.list_gripper_screws_status is not None else []
+	    _reason = self.error_reason if self.error_reason is not None else ''
+	    _list_gripper_screws_status = self.list_gripper_screws_status if self.list_gripper_screws_status is not None else []
+            userdata.error_reason = _reason
+	    userdata.list_gripper_screws_status = _list_gripper_screws_status
 	    userdata.gripper_id = self.gripper_id
 	    userdata.gripper_name = LOOKUP_GRIPPER[self.gripper_id] # self.gripper_id #
+	    
+	    Logger.loginfo('GripperStateListener: EXIT Error (empty is good) >{}< - list_gripper_screws_status >{}<'.format(
+			   _reason, _list_gripper_screws_status))
 	except Exception as e:
 	    Logger.logwarn("Bad, error during exit: " + str(e))
+	self._reset_keys() 
 	self.sub_gripper_state.unregister()
 

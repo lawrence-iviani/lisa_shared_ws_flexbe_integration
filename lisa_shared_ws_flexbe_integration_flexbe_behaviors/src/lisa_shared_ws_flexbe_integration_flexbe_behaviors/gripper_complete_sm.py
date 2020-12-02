@@ -59,7 +59,7 @@ class GripperCompleteSM(Behavior):
         wait_for_question = 25
         wait_for_utter = 15
         intents = ['YesNo', 'Complete']
-        answer_key = 'finshed'
+        answer_key = 'confirm'
         detail_levels = 'low'
         # x:73 y:608, x:539 y:365, x:575 y:287
         _state_machine = OperatableStateMachine(outcomes=['finished', 'failed', 'max_retry'], output_keys=['answer'])
@@ -100,7 +100,7 @@ class GripperCompleteSM(Behavior):
                                         autonomy={'intent_recognized': Autonomy.Off, 'intent_not_recognized': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'question', 'payload': 'payload', 'original_sentence': 'original_sentence', 'error_reason': 'error_reason', 'intent_recognized': 'intent_recognized'})
 
-            # x:676 y:195
+            # x:690 y:190
             OperatableStateMachine.add('ContinueRetry',
                                         _sm_continueretry_0,
                                         transitions={'true': 'log_retry_value', 'false': 'max_retry'},
@@ -110,7 +110,7 @@ class GripperCompleteSM(Behavior):
             # x:52 y:390
             OperatableStateMachine.add('GetAnswerKey',
                                         LisaGetPayloadKeyState(payload_key=answer_key),
-                                        transitions={'done': 'finished', 'error': 'failed'},
+                                        transitions={'done': 'log_output', 'error': 'failed'},
                                         autonomy={'done': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'payload': 'payload', 'payload_value': 'answer'})
 
@@ -142,7 +142,14 @@ class GripperCompleteSM(Behavior):
                                         autonomy={'done': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
                                         remapping={'text_to_utter': 'text_to_utter', 'error_reason': 'error_reason'})
 
-            # x:635 y:94
+            # x:74 y:506
+            OperatableStateMachine.add('log_output',
+                                        LogKeyState(text="GC: exit with answer: {}", severity=Logger.REPORT_HINT),
+                                        transitions={'done': 'finished'},
+                                        autonomy={'done': Autonomy.Off},
+                                        remapping={'data': 'answer'})
+
+            # x:646 y:73
             OperatableStateMachine.add('log_retry_value',
                                         LogKeyState(text="GC: retry level is {}", severity=Logger.REPORT_HINT),
                                         transitions={'done': 'AskForComplete'},

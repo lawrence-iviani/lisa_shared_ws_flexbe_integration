@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python	
 from flexbe_core import EventState, Logger
 
 # import required service
-from shared_workspace_msgs.srv import SetScrew
+from shared_workspace_msgs.srv import ResetScrew #SetScrew
 import rospy
 
 
@@ -34,23 +34,26 @@ class ResetScrewStatesInGripper(EventState):
 
 	def execute(self, userdata):
 		try:
-			Logger.loginfo('Waiting for service /set_screw	')
-			set_screw = rospy.ServiceProxy('/set_screw', SetScrew)
+			Logger.loginfo('Waiting for service /reset_screw	')
+			reset_screw = rospy.ServiceProxy('/reset_screw', ResetScrew)
 			gripper_id = int(self._screw_id/self._number_part_screws) 
 			first_screw_id = gripper_id * self._number_part_screws
-			Logger.loginfo('going to reset gripper {}'.format(gripper_id))
+			Logger.logdebug('ResetScrewStatesInGripper: going to reset gripper {}'.format(gripper_id))
 			resp = []
 			for ss in enumerate(self._screw_list):
 				n = ss[0]
 				s = ss[1]
 				_abs_id = first_screw_id + n
-				Logger.loginfo("Relative id {} state is {}".format(n,s))
+				Logger.loginfo("ResetScrewStatesInGripper: Relative id {} state is {}".format(n+first_screw_id,s))
 				if s not in COMPLETED_SCREW:
-					resp.append(set_screw(_abs_id, False, False))
-
+					Logger.logdebug("ResetScrewStatesInGripper:  NOT SCREWED!! id {} reset it".format(n+first_screw_id,s))
+					resp.append( (reset_screw(_abs_id),n+first_screw_id,s) )
+				else:
+					Logger.logdebug("ResetScrewStatesInGripper:  ALREADY SCREWED!! id {}: let it untouched".format(n+first_screw_id,s))
 			if len(resp)==0:
 				userdata.result = True
 				userdata.reason = 'all screws are screwed'
+				Logger.loginfo('ResetScrewStatesInGripper: EXECUTE done nothing_to_do')
 				return 'nothing_to_do'
 			elif all(resp):
 				userdata.result = True
@@ -58,12 +61,11 @@ class ResetScrewStatesInGripper(EventState):
 			else:	
 				userdata.result = False
 				userdata.reason = 'a problem in resetting the screw\'s gripper'
-			Logger.loginfo('EXECUTE done succeeded')
+			Logger.loginfo('ResetScrewStatesInGripper: EXECUTE done succeeded, {}'.format(resp))
 			return 'succeeded'
 		except rospy.ServiceException, e:
-			Logger.loginfo("Service call failed: %s" % e)
 			userdata.reason = str(e)
-			Logger.loginfo('EXECUTE done aborted')
+			Logger.logwarn('ResetScrewStatesInGripper: EXECUTE done aborted, reason is: '+str(e))
 			return 'aborted'
 
 	def on_enter(self, userdata):
