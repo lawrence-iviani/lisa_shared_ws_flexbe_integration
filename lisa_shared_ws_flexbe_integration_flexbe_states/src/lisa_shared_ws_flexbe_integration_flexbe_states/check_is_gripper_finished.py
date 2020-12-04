@@ -30,7 +30,7 @@ class CheckGripperIsFinished(EventState):
 
 	def __init__(self, number_part_screws=4):
 		super(CheckGripperIsFinished, self).__init__(
-			outcomes=['done', 'screws_available', 'operator_check' ,'error'],
+			outcomes=['done', 'screws_available', 'operator_check' ,'error', 'missing_screws'],
 			input_keys=['gripper_id','screw_status_list'],)
 		self._number_part_screws = number_part_screws
 		self._screw_list = []
@@ -70,6 +70,9 @@ class CheckGripperIsFinished(EventState):
 			elif len(_todo) > 0:
 				Logger.loginfo("CheckGripperIsFinished: Exit screws_available {}".format(_todo))
 				return 'screws_available'
+			elif len(_missing):
+				Logger.loginfo("CheckGripperIsFinished: some screws are missing {}".format(_missing))
+				return 'missing_screws'
 			else:
 				Logger.loginfo("CheckGripperIsFinished: Exit operator_check {}".format(_with_issue))
 				return 'operator_check'

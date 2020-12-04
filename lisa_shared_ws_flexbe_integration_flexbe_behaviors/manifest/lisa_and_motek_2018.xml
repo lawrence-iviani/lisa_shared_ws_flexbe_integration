@@ -12,16 +12,13 @@
 
 
 	<!-- Contained Behaviors -->
-	<contains name="Gripper Complete" />
 	<contains name="MotekInsertScrew" />
+	<contains name="Gripper Complete" />
 
 	<!-- Available Parameters -->
 
 	<!-- Semantic Properties -->
 	<state_props name="Load Trajectory">
-		<property key="Hardware" 	value="GPU"/>
-	</state_props>
-	<state_props name="Execute New Trajectory">
 		<property key="Hardware" 	value="GPU"/>
 	</state_props>
 	<behavior_props name="MotekInsertScrew">

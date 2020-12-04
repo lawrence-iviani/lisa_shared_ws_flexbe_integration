@@ -527,7 +527,7 @@ class LisaandMotek2018WithtrajectoryinteractionSM(Behavior):
                                         autonomy={'succeeded': Autonomy.Off, 'preempted': Autonomy.Off, 'aborted': Autonomy.Off},
                                         remapping={'action_id': 'eDRIVE_TO_START', 'trajectory_id': 'ZERO', 'results': 'results'})
 
-            # x:752 y:361
+            # x:756 y:374
             OperatableStateMachine.add('log_avail_screws',
                                         LogKeyState(text="MAIN: available screws \n{}", severity=Logger.REPORT_HINT),
                                         transitions={'done': 'Gripper Ended Check'},
@@ -569,7 +569,7 @@ class LisaandMotek2018WithtrajectoryinteractionSM(Behavior):
                                         autonomy={'error': Autonomy.Inherit, 'moved_to_next_screw': Autonomy.Inherit},
                                         remapping={'eEXECUTE_NEW_TRAJ': 'eEXECUTE_NEW_TRAJ', 'eCREATE_NEW_TRAJ': 'eCREATE_NEW_TRAJ', 'next_trajectory': 'next_trajectory', 'list_available_screw_poses': 'list_available_screw_poses', 'use_same_gripper': 'use_same_gripper', 'same_gripper_retry': 'same_gripper_retry'})
 
-            # x:388 y:364
+            # x:362 y:383
             OperatableStateMachine.add('Gripper Ended Check',
                                         _sm_gripper_ended_check_4,
                                         transitions={'fail': 'failed', 'completed': 'log_completed', 'screw_available': 'screw_available', 'incomplete': 'log_uncomplete', 'unknown': 'log_unknown'},
