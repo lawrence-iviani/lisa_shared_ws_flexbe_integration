@@ -483,7 +483,7 @@ class LisaandMotek2018SM(Behavior):
         with _sm_ask_once_for_retry_7:
             # x:68 y:88
             OperatableStateMachine.add('utter_not_inserted_text',
-                                        LisaMotekConcatenateScrewPartString(text_format="{}, please confirm, retry. skip, or abort ", number_part_screws=4),
+                                        LisaMotekConcatenateScrewPartString(text_format="Fault with {}, please confirm, retry. skip, or abort gripper", number_part_screws=4),
                                         transitions={'done': 'ask_retry'},
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'screw_id': 'next_trajectory', 'text_to_utter': 'text_to_utter'})
