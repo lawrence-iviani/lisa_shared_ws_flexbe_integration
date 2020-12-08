@@ -89,9 +89,9 @@ class LisaandMotek2018SM(Behavior):
         exec_acceleration = 1.00 # was scary at 0.40
         coll_threshold = 10 # was 14 with CVL at first, then 12 before switch to D435
         coll_repeats = 0
-        utter_incomplete = 'The gripper is not finished, tip, move the gripper on the workspace to restart'
+        utter_incomplete = 'The gripper is not finished'
         utter_complete = 'The gripper is finished, remove from the workspace'
-        utter_next_screw = 'move to next screw in the same gripper'
+        utter_next_screw = 'move, in the same gripper'
         utter_unknown = "Gripper is in an unknwon state"
         # x:1105 y:39, x:24 y:178
         _state_machine = OperatableStateMachine(outcomes=['finished', 'failed'])
@@ -189,7 +189,7 @@ class LisaandMotek2018SM(Behavior):
 
             # x:785 y:188
             OperatableStateMachine.add('utter obstacle',
-                                        LisaUtterActionState(text_to_utter="A screw is available, but there is free path to move above it", wait_time=0),
+                                        LisaUtterActionState(text_to_utter="Avaialble screws,  but  there is an  obstacle", wait_time=0),
                                         transitions={'uttered_all': 'wait_debug', 'timeout': 'wait_debug', 'command_error': 'error'},
                                         autonomy={'uttered_all': Autonomy.Off, 'timeout': Autonomy.Off, 'command_error': Autonomy.Off},
                                         remapping={'error_reason': 'error_reason'})
@@ -483,7 +483,7 @@ class LisaandMotek2018SM(Behavior):
         with _sm_ask_once_for_retry_7:
             # x:68 y:88
             OperatableStateMachine.add('utter_not_inserted_text',
-                                        LisaMotekConcatenateScrewPartString(text_format="Fault with {}, please confirm, retry. skip, or abort gripper", number_part_screws=4),
+                                        LisaMotekConcatenateScrewPartString(text_format="The {} has failed the insertion: confirm, retry. skip, or abort gripper", number_part_screws=4),
                                         transitions={'done': 'ask_retry'},
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'screw_id': 'next_trajectory', 'text_to_utter': 'text_to_utter'})
