@@ -18,6 +18,7 @@ from horse_flexbe_states.set_screw_service_state import SetScrewServiceState
 from horse_flexbe_states.shared_ws_action_state import SharedWsActionState
 from horse_flexbe_states.shared_ws_new_traj_action_state import SharedWsNewTrajActionState
 from lisa_flexbe_states_flexbe_states.lisa_utter_actionlib_state import LisaUtterActionState
+from lisa_flexbe_states_flexbe_states.lisa_utter_actionlib_state_with_uk import LisaUtterActionStateWithUserkey
 from lisa_flexbe_states_flexbe_states.lisa_utter_and_wait_for_intent_state import LisaUtterAndWaitForIntentState
 from lisa_shared_ws_flexbe_integration_flexbe_behaviors.gripper_complete_sm import GripperCompleteSM
 from lisa_shared_ws_flexbe_integration_flexbe_states.check_is_gripper_finished import CheckGripperIsFinished
@@ -82,6 +83,9 @@ class LisaandMotek2018SM(Behavior):
         # O 740 493 /Grip Ended Check
         # if false i need to reset the gripper
 
+        # O 733 148 /Gripper Ended Check/Ask Once for retry
+        # log and wait are for debug only
+
 
 
     def create(self):
@@ -123,6 +127,7 @@ class LisaandMotek2018SM(Behavior):
         _state_machine.userdata.use_same_gripper = False
         _state_machine.userdata.same_gripper_retry = 0
         _state_machine.userdata.obstacle_traj_counter = 0
+        _state_machine.userdata.interact_screw_failed = ""
 
         # Additional creation code can be added inside the following tags
         # [MANUAL_CREATE]
@@ -477,19 +482,19 @@ class LisaandMotek2018SM(Behavior):
                                         remapping={'input_value': 'screw_found', 'output_value': 'screw_found'})
 
 
-        # x:30 y:538, x:686 y:404, x:230 y:538, x:778 y:631, x:480 y:434
-        _sm_ask_once_for_retry_7 = OperatableStateMachine(outcomes=['error', 'retry', 'skip', 'confrimed_inserted', 'abort_gripper'], input_keys=['next_trajectory'])
+        # x:30 y:538, x:768 y:326, x:230 y:538, x:778 y:631, x:480 y:434
+        _sm_ask_once_for_retry_7 = OperatableStateMachine(outcomes=['error', 'retry', 'skip', 'confrimed_inserted', 'abort_gripper'], input_keys=['next_trajectory', 'interact_screw_failed'])
 
         with _sm_ask_once_for_retry_7:
-            # x:68 y:88
+            # x:36 y:29
             OperatableStateMachine.add('utter_not_inserted_text',
-                                        LisaMotekConcatenateScrewPartString(text_format="The {} has failed the insertion: confirm, retry. skip, or abort gripper", number_part_screws=4),
-                                        transitions={'done': 'ask_retry'},
+                                        LisaMotekConcatenateScrewPartString(text_format="The {} has failed the insertion: select to retry, or skip the screw, or abort the whole gripper", number_part_screws=4),
+                                        transitions={'done': 'utter'},
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'screw_id': 'next_trajectory', 'text_to_utter': 'text_to_utter'})
 
             # x:454 y:522
-            OperatableStateMachine.add('checK_abort_gripper',
+            OperatableStateMachine.add('check_abort_gripper',
                                         CheckConditionState(predicate=lambda x: x=='abort_gripper'),
                                         transitions={'true': 'abort_gripper', 'false': 'skip'},
                                         autonomy={'true': Autonomy.Off, 'false': Autonomy.Off},
@@ -498,23 +503,55 @@ class LisaandMotek2018SM(Behavior):
             # x:747 y:508
             OperatableStateMachine.add('check_confirm',
                                         CheckConditionState(predicate=lambda x: x=='confirm'),
-                                        transitions={'true': 'confrimed_inserted', 'false': 'checK_abort_gripper'},
+                                        transitions={'true': 'confrimed_inserted', 'false': 'check_abort_gripper'},
                                         autonomy={'true': Autonomy.Off, 'false': Autonomy.Off},
                                         remapping={'input_value': 'intent_recognized'})
 
-            # x:742 y:270
+            # x:975 y:166
             OperatableStateMachine.add('check_retry',
                                         CheckConditionState(predicate=lambda x: x=='retry'),
                                         transitions={'true': 'retry', 'false': 'check_confirm'},
                                         autonomy={'true': Autonomy.Off, 'false': Autonomy.Off},
                                         remapping={'input_value': 'intent_recognized'})
 
-            # x:392 y:173
-            OperatableStateMachine.add('ask_retry',
-                                        LisaUtterAndWaitForIntentState(context_id=None, intents=['retry','skip', 'confirm', 'abort_gripper'], wait_time=20),
-                                        transitions={'intent_recognized': 'check_retry', 'intent_not_recognized': 'skip', 'preempt': 'skip', 'timeouted': 'retry', 'error': 'error'},
+            # x:714 y:30
+            OperatableStateMachine.add('log_recogn',
+                                        LogKeyState(text="recognized: {}", severity=Logger.REPORT_HINT),
+                                        transitions={'done': 'wait_recogn'},
+                                        autonomy={'done': Autonomy.Off},
+                                        remapping={'data': 'intent_recognized'})
+
+            # x:540 y:145
+            OperatableStateMachine.add('log_to',
+                                        LogState(text="TIMEOUT !!!", severity=Logger.REPORT_HINT),
+                                        transitions={'done': 'wait_to'},
+                                        autonomy={'done': Autonomy.Off})
+
+            # x:41 y:138
+            OperatableStateMachine.add('utter',
+                                        LisaUtterActionStateWithUserkey(wait_time=0),
+                                        transitions={'uttered_all': 'ask_retry_2', 'timeout': 'ask_retry_2', 'command_error': 'error'},
+                                        autonomy={'uttered_all': Autonomy.Off, 'timeout': Autonomy.Off, 'command_error': Autonomy.Off},
+                                        remapping={'text_to_utter': 'text_to_utter', 'error_reason': 'error_reason'})
+
+            # x:859 y:59
+            OperatableStateMachine.add('wait_recogn',
+                                        WaitState(wait_time=0.1),
+                                        transitions={'done': 'check_retry'},
+                                        autonomy={'done': Autonomy.Off})
+
+            # x:681 y:228
+            OperatableStateMachine.add('wait_to',
+                                        WaitState(wait_time=2),
+                                        transitions={'done': 'check_retry'},
+                                        autonomy={'done': Autonomy.Off})
+
+            # x:394 y:29
+            OperatableStateMachine.add('ask_retry_2',
+                                        LisaUtterAndWaitForIntentState(context_id=None, intents=['retry','skip', 'abort_gripper'], wait_time=0),
+                                        transitions={'intent_recognized': 'log_recogn', 'intent_not_recognized': 'skip', 'preempt': 'skip', 'timeouted': 'log_to', 'error': 'error'},
                                         autonomy={'intent_recognized': Autonomy.Off, 'intent_not_recognized': Autonomy.Off, 'preempt': Autonomy.Off, 'timeouted': Autonomy.Off, 'error': Autonomy.Off},
-                                        remapping={'text_to_utter': 'text_to_utter', 'payload': 'payload', 'original_sentence': 'original_sentence', 'error_reason': 'error_reason', 'intent_recognized': 'intent_recognized'})
+                                        remapping={'text_to_utter': 'interact_screw_failed', 'payload': 'payload', 'original_sentence': 'original_sentence', 'error_reason': 'error_reason', 'intent_recognized': 'intent_recognized'})
 
 
         # x:333 y:404, x:118 y:300, x:1014 y:328, x:601 y:365
@@ -554,12 +591,11 @@ class LisaandMotek2018SM(Behavior):
                                         autonomy={'done': Autonomy.Off},
                                         remapping={'data': 'answer'})
 
-            # x:90 y:173
+            # x:124 y:171
             OperatableStateMachine.add('log_exit_failed',
-                                        LogKeyState(text="GCE: exit failed from Ask for gripper: {}", severity=Logger.REPORT_HINT),
+                                        LogState(text="GCE: exit failed", severity=Logger.REPORT_HINT),
                                         transitions={'done': 'error'},
-                                        autonomy={'done': Autonomy.Off},
-                                        remapping={'data': 'answer'})
+                                        autonomy={'done': Autonomy.Off})
 
             # x:776 y:90
             OperatableStateMachine.add('reset_gripper',
@@ -570,7 +606,7 @@ class LisaandMotek2018SM(Behavior):
 
 
         # x:1037 y:610, x:970 y:180, x:834 y:157, x:1315 y:92, x:1713 y:466
-        _sm_gripper_ended_check_9 = OperatableStateMachine(outcomes=['fail', 'completed', 'screw_available', 'incomplete', 'unknown'], input_keys=['next_trajectory', 'insertion_successful', 'screw_found', 'use_same_gripper'], output_keys=['list_available_screw_poses', 'use_same_gripper'])
+        _sm_gripper_ended_check_9 = OperatableStateMachine(outcomes=['fail', 'completed', 'screw_available', 'incomplete', 'unknown'], input_keys=['next_trajectory', 'insertion_successful', 'screw_found', 'use_same_gripper', 'interact_screw_failed'], output_keys=['list_available_screw_poses', 'use_same_gripper'])
 
         with _sm_gripper_ended_check_9:
             # x:71 y:86
@@ -585,7 +621,7 @@ class LisaandMotek2018SM(Behavior):
                                         _sm_ask_once_for_retry_7,
                                         transitions={'error': 'fail', 'retry': 'utter_retry', 'skip': 'Update Screw', 'confrimed_inserted': 'set_screw_inserted', 'abort_gripper': 'set_change_gripper'},
                                         autonomy={'error': Autonomy.Inherit, 'retry': Autonomy.Inherit, 'skip': Autonomy.Inherit, 'confrimed_inserted': Autonomy.Inherit, 'abort_gripper': Autonomy.Inherit},
-                                        remapping={'next_trajectory': 'next_trajectory'})
+                                        remapping={'next_trajectory': 'next_trajectory', 'interact_screw_failed': 'interact_screw_failed'})
 
             # x:92 y:255
             OperatableStateMachine.add('Log screws',
@@ -742,7 +778,7 @@ class LisaandMotek2018SM(Behavior):
                                         _sm_gripper_ended_check_9,
                                         transitions={'fail': 'failed', 'completed': 'log_completed', 'screw_available': 'screw_available', 'incomplete': 'log_uncomplete', 'unknown': 'log_unknown'},
                                         autonomy={'fail': Autonomy.Inherit, 'completed': Autonomy.Inherit, 'screw_available': Autonomy.Inherit, 'incomplete': Autonomy.Inherit, 'unknown': Autonomy.Inherit},
-                                        remapping={'next_trajectory': 'next_trajectory', 'insertion_successful': 'insertion_successful', 'screw_found': 'screw_found', 'use_same_gripper': 'use_same_gripper', 'list_available_screw_poses': 'list_available_screw_poses'})
+                                        remapping={'next_trajectory': 'next_trajectory', 'insertion_successful': 'insertion_successful', 'screw_found': 'screw_found', 'use_same_gripper': 'use_same_gripper', 'interact_screw_failed': 'interact_screw_failed', 'list_available_screw_poses': 'list_available_screw_poses'})
 
 
         return _state_machine
